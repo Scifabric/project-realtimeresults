@@ -1,0 +1,124 @@
+<div id="warning" class="modal fade">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title"></h4>
+      </div>
+      <div class="modal-body">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
+<div class="row skeleton">
+    <div class="col-xs-12 col-sm-9">
+        <h2 id="question">Do you see a human face?</h2>
+    </div>
+    <div class="hidden-xs col-sm-3">
+        <p style="margin-top:30px;"><span id="i18n_working_task">Task</span> <span id="task-id">#</span></p>
+    </div>
+</div>
+<div class="row">
+    <div id="answer" class="top20 col-xs-12">
+        <button class="btn btn-answer " value="Yes">Yes</button><button class="btn btn-answer " value="No">No</button>
+    </div>
+    <div class="top20 col-xs-12">
+        <a id="photo-link" href="#">
+            <img id="photo" src="http://i.imgur.com/GeHxzb7.png" style="max-width=100%">
+        </a>
+    </div>
+</div>
+<script type="text/javascript">
+(function() {
+// Default language
+var userLocale = "en";
+// Translations
+var messages = {"en": {
+                        "i18n_working_task": "Task",
+                      },
+                "es": {
+                        "i18n_working_task": "Tarea",
+                      },
+               };
+// Update userLocale with server side information
+$(document).ready(function(){
+    userLocale = document.getElementById('PYBOSSA_USER_LOCALE').textContent.trim();
+});
+
+function i18n_translate() {
+    var ids = Object.keys(messages[userLocale])
+    for (i=0; i<ids.length; i++) {
+        console.log("Translating: " + ids[i]);
+        document.getElementById(ids[i]).innerHTML = messages[userLocale][ids[i]];
+    }
+}
+
+pybossa.taskLoaded(function(task, deferred) {
+    if ( !$.isEmptyObject(task) ) {
+        // load image from flickr
+        var img = $('<img />');
+        img.load(function() {
+            // continue as soon as the image is loaded
+            deferred.resolve(task);
+        });
+        img.attr('src', task.info.url_b).css('height', 'auto');
+        img.css('max-width', '100%');
+        task.info.image = img;
+    }
+    else {
+        deferred.resolve(task);
+    }
+});
+
+function warn_user(type, msg) {
+    var p = $("<p/>");
+    var title;
+
+    if (type === 'info') {
+        title = "Hi there! Please, read this carefully"
+    }
+
+    if (type === 'error') {
+        title = "Ooops! Something went wrong!"
+    }
+    if (type === 'warning') {
+        title = "Hi there! Please, read this carefully"
+    }
+    p.text(msg);
+    $(".modal-title").text(title);
+    $(".modal-body").append(p);
+    $("#warning").modal();
+}
+
+pybossa.presentTask(function(task, deferred) {
+    if ( !$.isEmptyObject(task) ) {
+        i18n_translate();
+        $('#photo-link').html('').append(task.info.image);
+        $("#photo-link").attr("href", task.info.link);
+        $('#task-id').html(task.id);
+        $('.btn-answer').off('click').on('click', function(evt) {
+            var $btn = $(this);
+            var answer = $btn.attr("value");
+            if (typeof answer != 'undefined') {
+                pybossa.saveTask(task.id, answer).done(function() {
+                    deferred.resolve();
+                });
+            }
+            else {
+                warn_user('error', 'Unexpected type of answer.');
+            }
+        });
+    }
+    else {
+        $(".skeleton").hide();
+        warn_user('info', 'You have contributed to all available tasks! Thanks!');
+    }
+});
+
+pybossa.run('realtimeresults');
+})();
+</script>

@@ -1,0 +1,105 @@
+<style>
+.ct-series-a .ct-bar {
+  stroke: rgb(43, 152, 132);
+  /* stroke-linecap: round; */
+}
+
+.ct-series-b .ct-bar {
+  stroke: rgb(123, 200, 178);
+  /* stroke-linecap: round; */
+}
+
+.ct-label {
+    font-size: 10px;
+}
+
+</style>
+<div class="row">
+    <div class="col-md-12">
+        <h2>Results for task <span id="task_id"></span></h2>
+    </div>
+</div>
+<div class="row">
+    <div id="img" class="col-md-4"></div>
+    <div class="col-md-3">
+        <div class="ct-chart ct-square"></div>
+        <button id="prevResult" class="btn btn-default">Check previous result</button>
+        <button id="nextResult" class="btn btn-default">Check next result</button>
+    </div>
+</div>
+
+<script>
+window.last_result_id = [0];
+window.project_id = 3472;
+
+function show_a_result(last_result_id) {
+    if (last_result_id == 0) {
+        var url = "//crowdcrafting.org/api/result?project_id=" + window.project_id + "&limit=1";
+        $("#prevResult").hide();
+    }
+    else {
+        $("#prevResult").show();
+        var url = "//crowdcrafting.org/api/result?project_id=" + window.project_id + "&last_id=" + last_result_id + "&limit=1";
+    }
+
+    var xhrResult = $.ajax({
+      url: url,
+      dataType: "json",
+    });
+    
+    xhrResult.done(function( results ) {
+            var result = results[0];
+            var taskURL = "//crowdcrafting.org/api/task/" + result.task_id; 
+            window.last_result_id.push(result.id);
+    
+            var xhrTask = $.ajax({
+              url: taskURL,
+              dataType: "json",
+              }).done(function(task){
+                  $("#task_id").text(task.id);
+                  var img = $("<img/>");
+                  img.attr("src", task.info.url_b);
+                  img.addClass("img-responsive");
+                  $("#img").html("").append(img);
+                  createChart(result);
+                  });
+    
+      });
+}
+
+
+function createChart(result) {
+    var labels = [];
+    var series = [];
+
+    for ( var label in result.info.analysis) {
+        labels.push(label);
+        // var pct = (result.info.analysis[label] * 100) / result.info.summary.count;
+        series.push(result.info.analysis[label]);
+    }
+
+    new Chartist.Bar('.ct-chart', {
+      labels: labels,
+      series: series,
+    }, {
+      distributeSeries: true,
+      axisY: {onlyInteger: true}
+    });
+
+}
+
+show_a_result(window.last_result_id[0]);
+
+$("#nextResult").off('click').on('click', function(e){
+        var index = window.last_result_id.length - 1;
+        show_a_result(window.last_result_id[index]);
+        });
+
+$("#prevResult").off('click').on('click', function(e){
+        var index = window.last_result_id.length - 3;
+        var previous_id = window.last_result_id[index];
+        window.last_result_id.pop();
+        window.last_result_id.pop();
+        show_a_result(previous_id);
+        });
+</script>
