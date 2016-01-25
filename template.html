@@ -90,7 +90,7 @@ function warn_user(type, msg) {
     }
     p.text(msg);
     $(".modal-title").text(title);
-    $(".modal-body").append(p);
+    $(".modal-body").html(p);
     $("#warning").modal();
 }
 
